@@ -1,0 +1,98 @@
+import { io } from "./index.js"
+
+io.on("connection", (socket) => {
+
+    printRooms()
+
+    socket.on('create_room', (codeRoom, callback) => {
+        socket.join(codeRoom);
+        callback({ status: "OK", room: codeRoom, owner: true })
+        printRooms()
+
+    });
+
+    socket.on('join_room', (codeRoom, callback) => {
+        const roomExists = io.sockets.adapter.rooms.has(codeRoom);
+
+        if (!roomExists) {
+            callback({ status: "ERRO", room: codeRoom, message: "Nao Existe sala com esse ID" })
+        } else {
+            socket.join(codeRoom);
+            callback({ status: "OK", room: codeRoom, owner: false })
+            printRooms()
+        }
+    });
+
+    
+    socket.on('cliente_mensagem', (msg, codigosala) => {
+
+        io.to(codigosala).emit("msg-sala", msg)
+
+    });
+
+
+    socket.on("disconnecting", () => {
+
+        console.log(socket.rooms);
+
+        const rooms = Array.from(socket.rooms);
+
+        rooms.forEach(room => {
+
+            const roomId = io.sockets.adapter.rooms.get(room);
+
+            console.log(room)
+            const obj = {
+                type: "left_user",
+                message: "Novo usuario entrou na sala",
+                users_conected: roomId.size - 1
+            }
+
+            io.to(room).emit("msg-sala", obj);
+        });
+
+    });
+
+
+    socket.on("disconnect", (motivo) => {
+        // console.log(`Cliente "${socket.id}" desconectado!
+        // Motivo: ${motivo}`);
+        printRooms()
+
+
+    });
+
+
+    function printRooms() {
+        const rooms = io.sockets.adapter.rooms;
+        console.log('Salas existentes:');
+        console.log("-------------------")
+        console.log(rooms)
+        console.log("-------------------")
+    }
+})
+
+
+
+
+
+
+
+
+
+// socket.on('join_room', (codeRoom, callback) => {
+//     socket.join(codeRoom);
+
+//     const room = io.sockets.adapter.rooms.get(codeRoom);
+
+//     const obj = {
+//         type: "new_user",
+//         message: "Novo usuario entrou na sala",
+//         users_conected: room.size
+//     }
+
+//     socket.to(codeRoom).emit("msg-sala", obj)
+
+//     printRooms()
+
+// });
