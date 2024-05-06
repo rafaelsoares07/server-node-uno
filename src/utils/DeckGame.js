@@ -13,21 +13,21 @@ export class DeckGame {
         // Adiciona cartas numeradas
         for (let color of colors) {
             for (let i = 0; i <= 9; i++) {
-                this.deck.push(`${color}${i}`);
+                this.deck.push({name:`${color}${i}`,value:i, color:color, type:"Basic Card",action:false});
             }
         }
 
         // Adiciona cartas especiais
         for (let color of colors) {
             for (let special of specialCards) {
-                this.deck.push(`${special}${color}`);
+                this.deck.push({name:`${special}${color}`,value:special, color:color, type:"Especial Card",action:true})
             }
         }
 
         // Adiciona cartas Wild
         for (let wild of wildCards) {
             for (let i = 0; i < 4; i++) {
-                this.deck.push(wild);
+                this.deck.push({name:wild,value:wild, color:null, type:"Wild Card",action:true});
             }
         }
 
