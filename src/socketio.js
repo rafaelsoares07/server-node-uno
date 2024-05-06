@@ -221,6 +221,25 @@ io.on("connection", (socket) => {
             {code:codeRoom}
         )
 
+        let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn)+1;
+
+        console.log(nextPlayerIndex)
+
+        if(nextPlayerIndex===updatedRoom.order.length){
+            const updateLastCard = await databaseRooms.updateOne(
+                { code: codeRoom },
+                { $set: { current_turn: updatedRoom.order[0] } } 
+            );
+        }
+        else{
+            const updateLastCard = await databaseRooms.updateOne(
+                { code: codeRoom },
+                { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } } 
+            );
+        }
+
+        console.log(updatedRoom)
+
         io.to(codeRoom).emit("play_card", updatedRoom);
     }
     function isSpecialCard(card){
