@@ -280,7 +280,7 @@ io.on("connection", (socket) => {
             { code: codeRoom }
         )
 
-        io.to(codeRoom).emit("action_game", {...updatedRoomFinaly, action:"play_card"});
+        io.to(codeRoom).emit("action_game_play_card", {...updatedRoomFinaly, action:"play_card"});
     }
     function isSpecialCard(card) {
         if (card.type == "Wild Card") {
@@ -338,7 +338,7 @@ io.on("connection", (socket) => {
         const updatedRoom = await databaseRooms.findOne(
             { code: data.code }
         )
-        io.to(data.code).emit("action_game", {...updatedRoom, action:"drag_card"});
+        io.to(data.code).emit("action_game_drag_card", deckAfterPick);
 
     }
 
