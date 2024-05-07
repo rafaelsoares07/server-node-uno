@@ -28,9 +28,9 @@ io.on("connection", (socket) => {
             players: [{ socket_id: socket.id, name: userName, img_avatar: imgAvatar, owner: true, deck: null }],
             code: codeRoom,
             deck: deckGame.getDeck(),
-            order:[socket.id],
-            current_turn:socket.id,
-            last_card_played:null
+            order: [socket.id],
+            current_turn: socket.id,
+            last_card_played: null
         });
         // console.log(result)
         printRooms()
@@ -58,20 +58,20 @@ io.on("connection", (socket) => {
 
             const result = await databaseRooms.updateOne(
                 { code: codeRoom },
-                { 
-                    $addToSet: { 
-                        players: { 
-                            socket_id: socket.id, 
-                            name: userName, 
-                            img_avatar: imgAvatar, 
-                            owner: false, 
-                            deck: null 
+                {
+                    $addToSet: {
+                        players: {
+                            socket_id: socket.id,
+                            name: userName,
+                            img_avatar: imgAvatar,
+                            owner: false,
+                            deck: null
                         },
                         order: socket.id // Adicionando socket.id ao array order 
                     }
                 }
             );
-                    
+
             printRooms()
             setupGame(codeRoom)
         }
@@ -82,34 +82,37 @@ io.on("connection", (socket) => {
         io.to(codeRoom).emit("setup_game", result);
     }
 
+    socket.on("teste", teste => {
+        console.log(teste)
+    })
 
     socket.on("start_game", async (data, callback) => {
         // Busque a sala pelo código
         const room = await databaseRooms.findOne({ code: data.code });
-    
+
         // Verifique se a sala foi encontrada
         if (room) {
             // Obtenha a lista de jogadores
             const players = room.players;
 
             let deckRemaned = data.deck
-    
+
             let currentIndex = 0; // Variável para rastrear a posição atual no array data.deck
-    
+
             // Atualize o deck de cada jogador
             const updatedPlayers = players.map(player => {
                 // Pegue as próximas 7 cartas do array data.deck
-                const newDeck = data.deck.slice(currentIndex, currentIndex + 15);
-                deckRemaned = deckRemaned.slice(15)
+                const newDeck = data.deck.slice(currentIndex, currentIndex + 5);
+                deckRemaned = deckRemaned.slice(5)
                 // Atualize o deck do jogador e atualize a variável currentIndex
-                currentIndex += 15;
-    
+                currentIndex += 5;
+
                 return {
                     ...player,
                     deck: newDeck // Substitua "novoDeck" pelo novo deck que você deseja atribuir ao jogador
                 };
             });
-    
+
             // Atualize o documento com a lista de jogadores atualizada
             const result = await databaseRooms.updateOne(
                 { code: data.code },
@@ -120,39 +123,48 @@ io.on("connection", (socket) => {
                 { code: data.code },
                 { $set: { deck: deckRemaned } }
             );
-    
+
             const roomAtualizada = await databaseRooms.findOne({ code: data.code });
 
             io.to(data.code).emit("start_game", roomAtualizada);
-            
+
         } else {
             // Sala não encontrada
         }
     });
-    
 
-    socket.on("play_card", async(data, card, callback )=>{
+    socket.on("initial_game_setup", async (roomId, callback) => {
+        const room = await databaseRooms.findOne({ code: roomId });
+        callback(room)
+    })
+
+    socket.on("play_card", async (data, card, callback) => {
         const lastCardPlayed = await getLastCardPlayed(data.code)
-        if(!lastCardPlayed){
+        if (!lastCardPlayed) {
             console.log("E a primeira carta da partida")
             registerLastCardPlayed(data.code, card)
-        }else{
-            if(isSpecialCard(card)){
-                console.log("E um carta especial")
-                registerLastCardPlayed(data.code, card)
-            }
-            else if(verifySameColor(lastCardPlayed,card)){
-                console.log("Sao da mesma cor")
-                registerLastCardPlayed(data.code,card)
-            }
-            else if(verifySameValue(lastCardPlayed,card)){
-                console.log("As cartas tem o mesmo valor, entao pode ser jogada")
-                registerLastCardPlayed(data.code,card)
-            }
-            else{
-                callback({type:"ERRO",message:"Essa carta nao pode ser jogada, lembre-se: As cartas devem ser do mesmo numero ou cor para poder jogar, ou se for uma crta especial"})
-            }
         }
+        else if (isSpecialCard(card)) {
+            console.log("E um carta especial")
+            registerLastCardPlayed(data.code, card)
+        }
+        else if (verifySameColor(lastCardPlayed, card)) {
+            console.log("Sao da mesma cor")
+            registerLastCardPlayed(data.code, card)
+        }
+        else if (verifySameValue(lastCardPlayed, card)) {
+            console.log("As cartas tem o mesmo valor, entao pode ser jogada")
+            registerLastCardPlayed(data.code, card)
+        }
+        else {
+            callback({ type: "ERRO", message: "Essa carta nao pode ser jogada, lembre-se: As cartas devem ser do mesmo numero ou cor para poder jogar, ou se for uma crta especial" })
+        }
+    }
+    )
+
+    socket.on("pick_card", async (data) => {
+        pickCard(data)
+
     })
 
     socket.on("disconnect", async (motivo) => {
@@ -205,61 +217,132 @@ io.on("connection", (socket) => {
 
 
     // FUNCOES DE REUTILIZAVEIS PARA IMPLEMENTAR NA REFATORACAO
-    async function getLastCardPlayed(codeRoom){
+    async function getLastCardPlayed(codeRoom) {
         const result = await databaseRooms.findOne({ code: codeRoom });
         const lastCardPlayed = result.last_card_played;
         return lastCardPlayed;
     }
 
-    async function registerLastCardPlayed(codeRoom, card){
+    async function registerLastCardPlayed(codeRoom, card) {
         const updateLastCard = await databaseRooms.updateOne(
             { code: codeRoom },
-            { $set: { last_card_played: card } } 
+            { $set: { last_card_played: card } }
         );
 
         const updatedRoom = await databaseRooms.findOne(
-            {code:codeRoom}
+            { code: codeRoom }
         )
-
-        let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn)+1;
-
-        console.log(nextPlayerIndex)
-
-        if(nextPlayerIndex===updatedRoom.order.length){
-            const updateLastCard = await databaseRooms.updateOne(
-                { code: codeRoom },
-                { $set: { current_turn: updatedRoom.order[0] } } 
-            );
-        }
-        else{
-            const updateLastCard = await databaseRooms.updateOne(
-                { code: codeRoom },
-                { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } } 
-            );
-        }
 
         console.log(updatedRoom)
 
-        io.to(codeRoom).emit("play_card", updatedRoom);
-    }
-    function isSpecialCard(card){
-        if(card.type =="Wild Card"){
-            return true;
+        let currentPlayer = updatedRoom.players.filter(player => player.socket_id === updatedRoom.current_turn)
+        console.log(currentPlayer)
+        let refreshDeckPlayer = currentPlayer[0].deck;
+        removeCardFromDeck(refreshDeckPlayer, card);
+
+        console.log(currentPlayer[0].deck)
+
+        const updateResult = await databaseRooms.updateOne(
+            {
+                code: codeRoom, // Código da sala
+                "players.socket_id": currentPlayer[0].socket_id // Procurar pelo jogador pelo socket_id
+            },
+            {
+                $set: {
+                    "players.$[player].deck": currentPlayer[0].deck // Atualizar o array de cartas do jogador específico
+                }
+            },
+            {
+                arrayFilters: [{ "player.socket_id": currentPlayer[0].socket_id }]
+            }
+        );
+
+        console.log(updateResult)
+
+        let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn) + 1;
+
+        console.log(nextPlayerIndex)
+
+        if (nextPlayerIndex === updatedRoom.order.length) {
+            const updateLastCard = await databaseRooms.updateOne(
+                { code: codeRoom },
+                { $set: { current_turn: updatedRoom.order[0] } }
+            );
         }
-        return false;    
+        else {
+            const updateLastCard = await databaseRooms.updateOne(
+                { code: codeRoom },
+                { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } }
+            );
+        }
+
+        const updatedRoomFinaly = await databaseRooms.findOne(
+            { code: codeRoom }
+        )
+
+        io.to(codeRoom).emit("action_game", {...updatedRoomFinaly, action:"play_card"});
     }
-    function verifySameColor(lastCardPlayed, card){
-        if(lastCardPlayed.color==card.color){
+    function isSpecialCard(card) {
+        if (card.type == "Wild Card") {
             return true;
         }
         return false;
     }
-    function verifySameValue(last_card_played, card){
-        if(last_card_played.value==card.value){
+    function verifySameColor(lastCardPlayed, card) {
+        if (lastCardPlayed.color == card.color) {
             return true;
         }
         return false;
     }
+    function verifySameValue(last_card_played, card) {
+        if (last_card_played.value == card.value) {
+            return true;
+        }
+        return false;
+    }
+    function removeCardFromDeck(deck, cardToRemove) {
+        const index = deck.findIndex(card => card.name === cardToRemove.name);
+        if (index !== -1) {
+            deck.splice(index, 1);
+        }
+    }
+
+    async function pickCard(data) {
+        console.log("chegou awuo")
+        const room = await databaseRooms.findOne(
+            { code: data.code }
+        )
+        const pikedCard = room.deck[0]
+        room.deck.shift();
+
+        await databaseRooms.updateOne({ code: data.code }, { $set: { deck: room.deck } });
+
+        let currentPlayer = room.players.filter(player => player.socket_id === data.current_turn)
+        let deckAfterPick = [...currentPlayer[0].deck, pikedCard]
+        
+        await databaseRooms.updateOne(
+            {
+                code: data.code, // Código da sala
+                "players.socket_id": currentPlayer[0].socket_id // Procurar pelo jogador pelo socket_id
+            },
+            {
+                $set: {
+                    "players.$[player].deck": deckAfterPick// Atualizar o array de cartas do jogador específico
+                }
+            },
+            {
+                arrayFilters: [{ "player.socket_id": currentPlayer[0].socket_id }]
+            }
+        );
+
+        const updatedRoom = await databaseRooms.findOne(
+            { code: data.code }
+        )
+        io.to(data.code).emit("action_game", {...updatedRoom, action:"drag_card"});
+
+    }
+
+
 })
 
 
