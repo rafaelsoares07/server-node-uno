@@ -14,7 +14,9 @@ servidorHttp.listen(porta, () => console.log(`Servidor escutando na porta ${port
 
 export const io = new Server(servidorHttp,{
     cors: {
-        origin: "*"
+         origin: '*',
+        methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
     }
 })
 
