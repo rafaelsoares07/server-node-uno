@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
             order: [socket.id],
             current_turn: socket.id,
             last_card_played: null,
-            deck_discard:[]
+            deck_discard: []
         });
         // console.log(result)
         printRooms()
@@ -163,12 +163,42 @@ io.on("connection", (socket) => {
     }
     )
 
-    socket.on("pick_card", async (data ,callback) => {
+    socket.on("pick_card", async (data, callback) => {
         const { updatedRoom, deckAfterPick } = await pickCard(data)
         console.log(deckAfterPick)
         callback(deckAfterPick)
-        socket.broadcast.emit("action_game_drag_card",updatedRoom)
+        socket.broadcast.emit("action_game_drag_card", updatedRoom)
     })
+
+    socket.on("pass_turn", async(data, callback)=>{
+        callback({message:"Voce passou o turno"})
+        const updatedRoom = await databaseRooms.findOne(
+            { code: data.code }
+        )
+        let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn) + 1;
+
+        console.log(nextPlayerIndex)
+
+        if (nextPlayerIndex === updatedRoom.order.length) {
+            const updateLastCard = await databaseRooms.updateOne(
+                { code: data.code },
+                { $set: { current_turn: updatedRoom.order[0] } }
+            );
+        }
+        else {
+            const updateLastCard = await databaseRooms.updateOne(
+                { code: data.code },
+                { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } }
+            );
+        }
+
+        const updatedRoomFinaly = await databaseRooms.findOne(
+            { code: data.code }
+        )
+
+        io.to(data.code).emit("action_game_play_card", updatedRoomFinaly);
+    })
+
 
     socket.on("disconnect", async (motivo) => {
 
@@ -255,7 +285,7 @@ io.on("connection", (socket) => {
                     "players.$[player].deck": currentPlayer[0].deck // Atualizar o array de cartas do jogador específico
                 },
                 $addToSet: {
-                    deck_discard: { $each: [card] } 
+                    deck_discard: { $each: [card] }
                 }
             },
             {
@@ -285,7 +315,7 @@ io.on("connection", (socket) => {
             { code: codeRoom }
         )
 
-        io.to(codeRoom).emit("action_game_play_card", {...updatedRoomFinaly, action:"play_card"});
+        io.to(codeRoom).emit("action_game_play_card", { ...updatedRoomFinaly, action: "play_card" });
     }
     function isSpecialCard(card) {
         if (card.type == "Wild Card") {
@@ -323,7 +353,7 @@ io.on("connection", (socket) => {
 
         let currentPlayer = room.players.filter(player => player.socket_id === data.current_turn)
         let deckAfterPick = [...currentPlayer[0].deck, pikedCard]
-        
+
         await databaseRooms.updateOne(
             {
                 code: data.code, // Código da sala
@@ -342,8 +372,8 @@ io.on("connection", (socket) => {
         const updatedRoom = await databaseRooms.findOne(
             { code: data.code }
         )
-        
-        return {updatedRoom,deckAfterPick}
+
+        return { updatedRoom, deckAfterPick }
 
     }
 
