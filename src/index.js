@@ -1,11 +1,13 @@
 import express from "express";
 import http from "http"
 import {Server} from "socket.io"
+import cors from "cors"
 
 import "./config/dbConnect.js"
 
 const app = express();
 const porta = process.env.PORT ? Number(process.env.PORT):3001 ;
+app.use(cors())
 app.use(express.json())
 
 const servidorHttp = http.createServer(app)
