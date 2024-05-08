@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/socketio.js"
+    "dev": "nodemon src/socketio.js",
+    "build":"node src/socketio.js",
+    "start":"node src/socketio.js"
   },
   "keywords": [],
   "author": "",
