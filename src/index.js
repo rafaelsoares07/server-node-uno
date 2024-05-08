@@ -5,7 +5,7 @@ import {Server} from "socket.io"
 import "./config/dbConnect.js"
 
 const app = express();
-const porta = process.env.porta || 3001;
+const porta = process.env.PORT ? Number(process.env.PORT):3001 ;
 app.use(express.json())
 
 const servidorHttp = http.createServer(app)
