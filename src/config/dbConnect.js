@@ -1,6 +1,9 @@
 import { MongoClient } from "mongodb";
+import dotenv from "dotenv"
 
-const client = new MongoClient("mongodb+srv://rafaelsoares017:adminmongo@unocluster.p6ca4mw.mongodb.net/?retryWrites=true&w=majority&appName=UnoCluster");
+dotenv.config()
+
+const client = new MongoClient(process.env.MONGODB_CONNECT_URI);
 
 let databaseUsers;
 let databaseRooms;
