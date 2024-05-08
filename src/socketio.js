@@ -30,7 +30,8 @@ io.on("connection", (socket) => {
             deck: deckGame.getDeck(),
             order: [socket.id],
             current_turn: socket.id,
-            last_card_played: null
+            last_card_played: null,
+            deck_discard:[]
         });
         // console.log(result)
         printRooms()
@@ -162,9 +163,11 @@ io.on("connection", (socket) => {
     }
     )
 
-    socket.on("pick_card", async (data) => {
-        pickCard(data)
-
+    socket.on("pick_card", async (data ,callback) => {
+        const { updatedRoom, deckAfterPick } = await pickCard(data)
+        console.log(deckAfterPick)
+        callback(deckAfterPick)
+        socket.broadcast.emit("action_game_drag_card",updatedRoom)
     })
 
     socket.on("disconnect", async (motivo) => {
@@ -250,13 +253,15 @@ io.on("connection", (socket) => {
             {
                 $set: {
                     "players.$[player].deck": currentPlayer[0].deck // Atualizar o array de cartas do jogador específico
+                },
+                $addToSet: {
+                    deck_discard: { $each: [card] } 
                 }
             },
             {
                 arrayFilters: [{ "player.socket_id": currentPlayer[0].socket_id }]
             }
         );
-
         console.log(updateResult)
 
         let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn) + 1;
@@ -308,7 +313,6 @@ io.on("connection", (socket) => {
     }
 
     async function pickCard(data) {
-        console.log("chegou awuo")
         const room = await databaseRooms.findOne(
             { code: data.code }
         )
@@ -338,7 +342,8 @@ io.on("connection", (socket) => {
         const updatedRoom = await databaseRooms.findOne(
             { code: data.code }
         )
-        io.to(data.code).emit("action_game_drag_card", deckAfterPick);
+        
+        return {updatedRoom,deckAfterPick}
 
     }
 

@@ -8,7 +8,6 @@ const app = express();
 const porta = process.env.porta || 3001;
 app.use(express.json())
 
-
 const servidorHttp = http.createServer(app)
 
 servidorHttp.listen(porta, () => console.log(`Servidor escutando na porta ${porta}`))
