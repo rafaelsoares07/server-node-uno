@@ -83,10 +83,6 @@ io.on("connection", (socket) => {
         io.to(codeRoom).emit("setup_game", result);
     }
 
-    socket.on("teste", teste => {
-        console.log(teste)
-    })
-
     socket.on("start_game", async (data, callback) => {
         // Busque a sala pelo código
         const room = await databaseRooms.findOne({ code: data.code });
@@ -142,19 +138,19 @@ io.on("connection", (socket) => {
     socket.on("play_card", async (data, card, callback) => {
         const lastCardPlayed = await getLastCardPlayed(data.code)
         if (!lastCardPlayed) {
-            console.log("E a primeira carta da partida")
+            // console.log("E a primeira carta da partida")
             registerLastCardPlayed(data.code, card)
         }
         else if (isSpecialCard(card)) {
-            console.log("E um carta especial")
+            // console.log("E um carta especial")
             registerLastCardPlayed(data.code, card)
         }
         else if (verifySameColor(lastCardPlayed, card)) {
-            console.log("Sao da mesma cor")
+            // console.log("Sao da mesma cor")
             registerLastCardPlayed(data.code, card)
         }
         else if (verifySameValue(lastCardPlayed, card)) {
-            console.log("As cartas tem o mesmo valor, entao pode ser jogada")
+            // console.log("As cartas tem o mesmo valor, entao pode ser jogada")
             registerLastCardPlayed(data.code, card)
         }
         else {
@@ -165,13 +161,13 @@ io.on("connection", (socket) => {
 
     socket.on("pick_card", async (data, callback) => {
         const { updatedRoom, deckAfterPick } = await pickCard(data)
-        console.log(deckAfterPick)
+        // console.log(deckAfterPick)
         callback(deckAfterPick)
         socket.broadcast.emit("action_game_drag_card", updatedRoom)
     })
 
-    socket.on("pass_turn", async(data, callback)=>{
-        callback({message:"Voce passou o turno"})
+    socket.on("pass_turn", async (data, callback) => {
+        callback({ message: "Voce passou o turno" })
         const updatedRoom = await databaseRooms.findOne(
             { code: data.code }
         )
@@ -257,6 +253,7 @@ io.on("connection", (socket) => {
     }
 
     async function registerLastCardPlayed(codeRoom, card) {
+
         const updateLastCard = await databaseRooms.updateOne(
             { code: codeRoom },
             { $set: { last_card_played: card } }
@@ -273,7 +270,6 @@ io.on("connection", (socket) => {
         let refreshDeckPlayer = currentPlayer[0].deck;
         removeCardFromDeck(refreshDeckPlayer, card);
 
-        console.log(currentPlayer[0].deck)
 
         const updateResult = await databaseRooms.updateOne(
             {
@@ -292,23 +288,77 @@ io.on("connection", (socket) => {
                 arrayFilters: [{ "player.socket_id": currentPlayer[0].socket_id }]
             }
         );
-        console.log(updateResult)
 
-        let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn) + 1;
+        console.log(card)
 
-        console.log(nextPlayerIndex)
+        if (card.value == "skip") {
+            let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn) + 2;
 
-        if (nextPlayerIndex === updatedRoom.order.length) {
-            const updateLastCard = await databaseRooms.updateOne(
+            if (nextPlayerIndex === updatedRoom.order.length) {
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: updatedRoom.order[0] } }
+                );
+            }
+            else if(nextPlayerIndex>updatedRoom.order.length){
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: updatedRoom.order[1] } }
+                );
+            }
+            else {
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } }
+                );
+            }
+
+        }
+        else if (card.value == "Reverse") {
+            const array = [...updatedRoom.order]
+            console.log(updatedRoom.order)
+            const orderreverse = array.reverse()
+            console.log(orderreverse)
+
+            let nextPlayerIndex = orderreverse.indexOf(updatedRoom.current_turn) + 1;
+
+            console.log(nextPlayerIndex)
+
+            if (nextPlayerIndex === updatedRoom.order.length) {
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: orderreverse[0] } }
+                );
+            }
+            else {
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: orderreverse[nextPlayerIndex] } }
+                );
+            }
+            await databaseRooms.updateOne(
                 { code: codeRoom },
-                { $set: { current_turn: updatedRoom.order[0] } }
-            );
+                { $set: { order: orderreverse } }
+            )
+
         }
         else {
-            const updateLastCard = await databaseRooms.updateOne(
-                { code: codeRoom },
-                { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } }
-            );
+            let nextPlayerIndex = updatedRoom.order.indexOf(updatedRoom.current_turn) + 1;
+
+            console.log(nextPlayerIndex)
+
+            if (nextPlayerIndex === updatedRoom.order.length) {
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: updatedRoom.order[0] } }
+                );
+            }
+            else {
+                const updateLastCard = await databaseRooms.updateOne(
+                    { code: codeRoom },
+                    { $set: { current_turn: updatedRoom.order[nextPlayerIndex] } }
+                );
+            }
         }
 
         const updatedRoomFinaly = await databaseRooms.findOne(
