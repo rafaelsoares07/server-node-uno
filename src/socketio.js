@@ -300,7 +300,7 @@ io.on("connection", (socket) => {
                     { $set: { current_turn: updatedRoom.order[0] } }
                 );
             }
-            else if(nextPlayerIndex>updatedRoom.order.length){
+            else if (nextPlayerIndex > updatedRoom.order.length) {
                 const updateLastCard = await databaseRooms.updateOne(
                     { code: codeRoom },
                     { $set: { current_turn: updatedRoom.order[1] } }
@@ -320,26 +320,35 @@ io.on("connection", (socket) => {
             const orderreverse = array.reverse()
             console.log(orderreverse)
 
-            let nextPlayerIndex = orderreverse.indexOf(updatedRoom.current_turn) + 1;
-
-            console.log(nextPlayerIndex)
-
-            if (nextPlayerIndex === updatedRoom.order.length) {
+            if (updatedRoom.players.length === 2) {
                 const updateLastCard = await databaseRooms.updateOne(
                     { code: codeRoom },
-                    { $set: { current_turn: orderreverse[0] } }
+                    { $set: { current_turn: updatedRoom.current_turn } }
                 );
-            }
+            } 
             else {
-                const updateLastCard = await databaseRooms.updateOne(
+
+                let nextPlayerIndex = orderreverse.indexOf(updatedRoom.current_turn) + 1;
+
+                console.log(nextPlayerIndex)
+
+                if (nextPlayerIndex === updatedRoom.order.length) {
+                    const updateLastCard = await databaseRooms.updateOne(
+                        { code: codeRoom },
+                        { $set: { current_turn: orderreverse[0] } }
+                    );
+                }
+                else {
+                    const updateLastCard = await databaseRooms.updateOne(
+                        { code: codeRoom },
+                        { $set: { current_turn: orderreverse[nextPlayerIndex] } }
+                    );
+                }
+                await databaseRooms.updateOne(
                     { code: codeRoom },
-                    { $set: { current_turn: orderreverse[nextPlayerIndex] } }
-                );
+                    { $set: { order: orderreverse } }
+                )
             }
-            await databaseRooms.updateOne(
-                { code: codeRoom },
-                { $set: { order: orderreverse } }
-            )
 
         }
         else {

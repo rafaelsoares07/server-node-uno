@@ -7,8 +7,8 @@ export class DeckGame {
 
     buildDeck() {
         const colors = ["R", "B", "G", "Y"];
-        const specialCards = ["skip", "Reverse", "D2"];
-        const wildCards = ["W", "D4W"];
+        const specialCards = ["skip", "Reverse"];
+        const wildCards = ["W"];
 
         // Adiciona cartas numeradas
         for (let color of colors) {
