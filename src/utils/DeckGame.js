@@ -7,12 +7,12 @@ export class DeckGame {
 
     buildDeck() {
         const colors = ["R", "B", "G", "Y"];
-        const specialCards = ["skip", "Reverse"];
-        const wildCards = ["W"];
+        const specialCards = ["D2","D2","D2","D2","D2","D2"];
+        const wildCards = ["D4W"];
 
         // Adiciona cartas numeradas
         for (let color of colors) {
-            for (let i = 0; i <= 9; i++) {
+            for (let i = 0; i <= 3; i++) {
                 this.deck.push({name:`${color}${i}`,value:i, color:color, type:"Basic Card",action:false});
             }
         }
